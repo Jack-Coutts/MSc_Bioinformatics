@@ -1,0 +1,465 @@
+---
+title: "PGB-Assignment-1"
+output:
+  pdf_document:
+    extra_dependencies: 'subcaption'
+    fig_caption: yes
+  html_document: default
+  word_document: default
+---
+```{r Install packages, eval=FALSE, include=FALSE}
+
+#---------------Install--------------------
+
+# Install tinytex so that the markdown can be knitted to pdf
+tinytex::install_tinytex()
+
+# Install bioconductor and the GEOquery package (to download data)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("GEOquery")
+
+
+# Install tidyverse and dendextend for dendrogram
+install.packages("tidyverse")
+install.packages('dendextend')
+# Install circlize to make circle dendrogram
+install.packages('circlize') 
+
+# install gplots package for heatmap.2
+install.packages("gplots")
+
+# Install and load package good at plotting PCA (autoplot)
+install.packages("ggfortify")
+
+## Install ggplot2 - always useful
+install.packages("ggplot2")
+
+# For ggbiplot - to produce the biplot
+install.packages('devtools')
+install_github("vqv/ggbiplot", force = TRUE)
+
+# Bayes statistics of differential expression eBayes - 
+install.packages('statmod')
+
+# Better volcano plot
+BiocManager::install('EnhancedVolcano')
+
+# To install the clusterProfiler package: - GSEA
+BiocManager::install("clusterProfiler")
+
+# Install human annotation database
+BiocManager::install("org.Hs.eg.db")
+
+
+```
+
+```{r Load packages, include=FALSE}
+#--------------Load-------------------------
+
+# Load GEOquery to download data set
+library(GEOquery)
+
+# Load limma to average out replicates (avereps)
+library('limma')
+
+# Nice colours for plots
+library(colorspace)
+
+# Plot dendrogram - load tidyverse and dendextend
+library(tidyverse)
+library(dendextend)
+
+# load package gplots to use heatmap.2
+library("gplots")
+
+# PCA plot - ggfortify - (autoplot)
+library(ggfortify)
+
+# ggplot2 - graphs
+library(ggplot2)
+
+# For ggbiplot - to produce the biplot
+library(devtools)
+library(ggbiplot)
+
+# Bayes differential expression
+library(statmod)
+
+# Volcano plots
+library(EnhancedVolcano)
+
+# Load clusterprofiler - for GSEA
+library(clusterProfiler)
+
+# Human annotation database for GSEA
+library(org.Hs.eg.db)
+
+# Tables
+library(knitr)
+
+
+```
+
+
+
+# PGB-Assignment-1
+
+
+1. Import Dengue virus data from Gene Expression Omnibus (GEO). Organise the data into a table and convert the table to an ExpressionSet object to make the best use of bioconductor. 
+
+```{r GEO-import , include=FALSE}
+
+# Load/import in the DENV data from GEO
+gse <- getGEO('GDS5093', GSEMatrix = TRUE)
+
+# Create a table containing the actual gene expression data from gse
+gene_ex_df <- Table(gse)
+
+# Convert the gse object to an ExpressionSet object
+eset <- GDS2eSet(gse, do.log2=TRUE)
+
+# Create a data frame containing the phenotypic state of each sample
+pheno <- pData(eset)
+```
+
+2. Exploratory data analysis was carried out on the DENV data. Here the distribution of gene expression across the sample and the dimensions of the data set were explored. Upon finding that there was a large quantity of replicated expression measurements, the average expression across the replicated was calculated and used for further analysis.
+
+```{r Exploratory Analysis, include=FALSE}
+# Set row names of gene_ex_df (gene expression data to gene names
+geneNames <- as.character(gene_ex_df$IDENTIFIER)
+gene_ex_df <- exprs(eset)
+rownames(gene_ex_df) <- geneNames
+
+# Dimensions of the dataset
+dim(gene_ex_df)
+length(which(duplicated((rownames(gene_ex_df)))))
+# Almost half the gene names occur more than once 
+# Expression of a gene represented by more then one probe
+# This means we have replicate expression measurements
+
+# To make results easier to interpret average out the expression of these replicates 
+# Use avereps() from limma package for this
+
+# Calculate and use average expression for replicates
+nr_gene_ex_df <- avereps(gene_ex_df)
+
+# Check replicates have been averaged out
+dim(nr_gene_ex_df)
+length(which(duplicated(rownames(nr_gene_ex_df))))
+```
+
+3. Cluster analysis was then used to partition the data into smaller subsets of samples that are similar to each other. More specifically hierarchical cluster analysis was performed in which a Euclidean distance algorithm and complete linkage algorithm were used. 
+
+4. The genes with the highest standard deviation across all samples were selected to represent the genes with highest levels of differential expression between disease states. A heatmap of gene expression in the 100 selected gene was produced to indicated the relationship between disease state and gene expression. 
+
+5. Principle component analysis (PCA) by singular value decomposition was applied to the complete Dengue virus gene expression data set. This was done using the prcomp() function. 
+
+6. Following principle component analysis, volcano plots were produced in R to visualise the differential gene expression between the disease states.
+
+
+7. Functional enrichement analysis, specifically gene set enrichment analysis, performed on the data.
+
+***
+
+
+## Results and Discussion
+
+### Cluster Analysis - Dendrogram
+
+```{r Results - Dendro, echo=FALSE, message=FALSE, warning=FALSE, fig.align='left', fig.show='hold', out.width='49%', fig.cap= 'The graph on the left shows a dendrogram representing the distance between samples and the clustering of sample types. The graph on the right shows a PCA plot visualising the seperation of samples by the first two principle components.', fig.subcap=c(' ',' ')}
+
+### PCA and Dendrogram ###
+
+# Calculate distance matrix
+dists <- dist(t(nr_gene_ex_df), method = 'euclidean')
+
+# HCA
+HC <- hclust(dists, method = 'complete', members = NULL)
+
+# Disease type
+Disease_type <- rev(levels(pheno[,3]))
+
+# Disease labels
+disease_labels <- pheno$disease.state
+
+# Colours for disease types
+species_col <- rev(rainbow_hcl(4))[as.numeric(disease_labels)]
+
+# Create dendrogram object (dendextend package)
+dend <- as.dendrogram(HC)
+
+# Colour branches based on clusters - 3 main clusters
+dend <- colour_branches(dend, k=3)
+
+# Match the labels to the real classification
+labels_colors(dend) <-
+   rainbow_hcl(4)[sort_levels_values(
+      as.numeric(pheno$disease.state)[order.dendrogram(dend)]
+   )]
+
+# Add the disease state to the labels
+labels(dend) <- paste(as.character(pheno$disease.state)[order.dendrogram(dend)],
+                           "(",labels(dend),")", 
+                           sep = "")
+
+# We hang the dendrogram a bit:
+dend <- hang.dendrogram(dend,hang_height=0.1)
+
+# reduce the size of the labels:
+dend <- set(dend, "labels_cex", 0.3)
+
+#Plot
+par(mar = c(3,3,3,7))
+plot(dend, 
+     horiz =  TRUE,
+     nodePar = list(cex = .007))
+
+legend(x='topleft', 
+       title = 'Sample Disease State',
+       legend = c('Convalescent','Dengue Fever', 'Dengue Hemorrhagic Fever', 'healthy control'),
+       fill =rainbow_hcl(4),
+       cex =0.5)
+
+## PCA ##
+# Data set where the repeats are averaged
+nrgex_pca <- prcomp(t(nr_gene_ex_df), scale = TRUE)
+
+# Summary object showing the proportion of variance 
+s <- summary(nrgex_pca)
+
+## Plot PCA ##
+# Plot the first two principle components for each disease state
+autoplot(nrgex_pca, data = pheno, colour = 'disease.state')
+
+```
+\
+\
+\
+\
+\
+\
+### Heatmap - Gene expression
+\
+\
+\
+```{r Results - Heatmap, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.show='hold',fig.cap='Unsupervised hierrachical clustering analysis of gene expression in samples across Dengue virus disease states.'}
+
+## Select the top 100 genes by standard deviation ##
+# Find average sd for each gene
+genesd <- apply(nr_gene_ex_df, 1, sd)
+
+# Sort by sd (decreasing)
+genesd <- sort(genesd, decreasing = TRUE)
+
+# Select the top100 highest sd rows
+tp100sd <- as.data.frame(genesd[1:100])
+
+# Select the top 100 sd gene names
+tp100sd_names <- rownames(tp100sd)
+
+# Select/subest sample data for top 100 genes
+df100 <- nr_gene_ex_df[tp100sd_names,]
+
+## Produce Heatmap ##
+# df100 = 100 most differentially expressed genes across all samples
+heatmap.2(x=as.matrix(df100),
+          trace = 'none',
+          col = 'bluered',
+          xlab = 'Samples',
+          distfun = function(x) dist(x, method="euclidean"),
+          hclustfun = function(x) hclust(x, method="complete"),
+          ylab = 'Top 100 differentially expressed genes',
+          ColSideColors = c(
+            rep('#ABB065',19), # Conv
+            rep('#ACA4E2',10), # DHF
+            rep('#39BEB1',18), # DF
+            rep('#E495A5',9)), # HC
+          cexRow = 0.35,
+          cexCol = 0.75,
+          key = TRUE,
+          margins = c(7,5))
+
+# square line ends for the color legend
+par(lend = 1)  
+#Turn off legend clipping margins
+par(xpd=TRUE)
+# Plot legend
+legend(x=-0.15,
+       y=0.93,
+       legend = c("Healthy Control", "Convalescent","Dengue Fever",
+                  "Dengue Hemorrhagic Fever"), # category labels
+       col = c("#E495A5", "#ABB065", "#39BEB1", "#ACA4E2"),  # color key
+       lty= 1,             
+       lwd = 5,
+       cex = 0.5,
+       title = 'Sample Disease State')
+
+```
+\
+\
+\
+\
+\
+
+### Overall Differential gene expression  
+
+```{r Results- Overall DE, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Design matrix
+design <- model.matrix(~0+pheno$disease.state)
+
+#Assign column names
+colnames(design) <- c('Convalescent', 
+                      'Dengue_Fever', 
+                      'Dengue_Hemorrhagic_fever',
+                      'Healthy_Control')
+#Contrast matrix
+cont_matrix <- makeContrasts(CvsDF = Convalescent-Dengue_Fever,
+                             CvsDHF = Convalescent-Dengue_Hemorrhagic_fever,
+                             HCvsC = Healthy_Control-Convalescent,
+                             DFvsDHF = Dengue_Fever-Dengue_Hemorrhagic_fever,
+                             HCvsDF = Healthy_Control-Dengue_Fever,
+                             HCvsDHF = Healthy_Control-Dengue_Hemorrhagic_fever,
+                             levels=design)
+
+# Fit expression matrix to a linear model
+fit <- lmFit(nr_gene_ex_df, design)
+
+# Compute contrast
+fit_contrast <- contrasts.fit(fit, cont_matrix)
+
+# Bayes statistics of differential expression
+fit_contrast <- eBayes(fit_contrast)
+
+# Summary of results (number of differentially expressed genes)
+results <- decideTests(fit_contrast)
+dfde <- summary(results)
+
+kable(dfde, digits=1,
+      align = 'l',
+      caption = ' A table showing the total differential gene expression between each disease state.')
+
+```
+\
+\
+\
+\
+\
+\
+
+### Volcano Plots
+
+```{r Volcano function, message=FALSE, warning=FALSE, include=FALSE}
+
+# Generate a list of top 100 differentially expressed genes
+top_genes <- topTable(fit_contrast, number = 100, adjust = "BH")
+
+# Contrast data (each different) - used for volcano plot & functional enrichement
+CvsDF <- topTable(fit_contrast, coef = 1, number = 100000, adjust = 'BH')
+CvsDHF <- topTable(fit_contrast, coef = 2, number = 100000, adjust = 'BH')
+HCvsC <- topTable(fit_contrast, coef = 3, number = 100000, adjust = 'BH')
+DFvsDHF <- topTable(fit_contrast, coef = 4, number = 100000, adjust = 'BH')
+HCvsDF <- topTable(fit_contrast, coef = 5, number = 100000, adjust = 'BH')
+HCvsDHF <- topTable(fit_contrast, coef = 6, number = 100000, adjust = 'BH')
+
+## Function for plotting volcano plots ##
+
+volcano_func <- function(contrast_data, title){
+  EnhancedVolcano(contrast_data,
+                  lab = rownames(CvsDHF), 
+                  labSize = 3,
+                  ylim = c(0,17),
+                  xlim = c(-2,2),
+                  x = 'logFC', 
+                  y = 'adj.P.Val', 
+                  pCutoff = 0.05, 
+                  FCcutoff = 1,
+                  title = title,
+                  subtitle = '',
+                  pointSize = 1.0,
+                  colAlpha = 0.75)  
+  
+}
+```
+
+```{r Results-Volcano plots, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.show='hold', out.width='47%', fig.cap='Differential gene expression for the top 100 most differentially expressed genes in the healthy control samples compared with each disease state.'}
+
+volcano_func(HCvsDHF, '(a) HC vs DHF')
+volcano_func(HCvsDF, '(b) HC vs DF')
+volcano_func(HCvsC, '(c) HC vs C')
+
+```
+\
+\
+\
+
+```{r Results-volcano disease, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.show='hold', out.width='47%', fig.cap='Differential gene expression for the top 100 most differentially expressed genes between each of the disease states.'}
+
+volcano_func(CvsDHF, '(a) COA vs DHF')
+volcano_func(CvsDF, '(b) COA vs DF')
+volcano_func(DFvsDHF, '(c) DF vs DHF')
+
+```
+
+\
+\
+\
+
+
+### Functional Enrichement - GSEA
+
+```{r GSEA function, message=FALSE, warning=FALSE, include=FALSE}
+
+## Function that carries out GSEA and plots dotplots of the results ##
+GSEA_func <- function(contrast_data, title) {
+  # Get the entrezIds for our genes
+  entrezIds_Org = as.data.frame(mapIds(org.Hs.eg.db,
+                                       keys = rownames(contrast_data),
+                                       keytype = "SYMBOL",
+                                       column = "ENTREZID",
+                                       multiVals = "first"))
+  # Set the column name for gene enetrez IDs
+  colnames(entrezIds_Org) <- 'ENTREZID'
+  # Add entrez ID column to new fit_contrast toptable
+  contrast_data <- cbind(contrast_data, ENTREZID = entrezIds_Org$ENTREZID)
+  # Select only significant genes - adj.p.val
+  contrast_data <- contrast_data[contrast_data[,'adj.P.Val'] < 0.05,]
+  # Remove NAs
+  contrast_data <- na.omit(contrast_data)
+  # Select the logFC
+  logfc_list <- contrast_data$logFC
+  #Name these rows with ENTREZID
+  names(logfc_list) <- contrast_data$ENTREZID
+  # sort the list in decreasing order (required for clusterProfiler)
+  logfc_list = sort(logfc_list, decreasing = TRUE)
+  # Perform GSEA
+  GSEA <- gseGO(geneList = logfc_list, 
+                keyType = "ENTREZID",
+                ont = 'ALL', 
+                OrgDb = 'org.Hs.eg.db')
+  # Produce dotplot of results
+  require(DOSE)
+  dotplot(GSEA, showCategory=10,
+          split=".sign",
+          font.size = 4.5, 
+          title = title) + facet_grid(.~.sign)
+}
+```
+
+
+```{r Results-hGSEA, echo=FALSE, fig.align='center', fig.cap='Gene set enrichement analysis of', fig.show='hold', message=FALSE, warning=FALSE, out.width='47%'}
+
+
+## Plot  GSEA dotplots ##
+
+GSEA_func(HCvsDHF, '(a) HC vs DHF')
+GSEA_func(HCvsDF, '(b) HC vs DF')
+#GSEA_func(HCvsC, '(c) HC vs C') # No differential expression
+
+GSEA_func(CvsDHF, '(c) COA vs DHF')
+GSEA_func(CvsDF, '(d) COA vs DF')
+# GSEA_func(DFvsDHF, '(c) DF vs DHF') # No gene can be mapped
+
+```
+

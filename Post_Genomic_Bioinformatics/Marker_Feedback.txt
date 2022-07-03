@@ -1,0 +1,81 @@
+BIO725P Assignment Feedback for Jack Coutts
+===========================================
+
+GENERAL COMMENTS:
+
++ Very nicely presented throughout - approaching a professional level.
++ Very well referenced overall.
+
+TASK 1: 92%
+-----------
+
+* The introduction is good overall, but a bit long.
+
+Regarding the Methods section:
+- Methods section is a little too brief, omitting useful details.
+* Clarity of the methods section is very good, describing methods that are very suitable, and very well justified.
+* Ultimately, it might be possible for someone to repeat what you did, using a combination of what you've written in the Methods and some good guesswork.
+
+Regarding the Results section:
++ Results have come out pretty much as expected - your methods seem OK.
+* The Results section has a logical flow, is well explained, with appropriate figures and good discussion.
++ It's good to see biological context in the discussion.
++ The bonus task has been done, and done well.
+
+Regarding the Conclusion:
++ It is justifiable based on the results you obtained.
++ It is very good.
+
+Further comments on your response to Task 1:
+- Fig2: Watch out for missing gene labels when making heatmaps.
+
+TASK 2: 83%
+-----------
+
+- A well written introduction but the aim could have been clearer.
+
+Regarding the Methods section:
+- Methods section is a little too brief, omitting useful details.
+* Clarity of the methods section is very good, describing methods that are very suitable, and very well justified.
+- More details are needed regarding the source and nature of the data used.
+- Insufficient information provided about the size of the dataset (number of samples of each class, etc.).
+- Ultimately, there isn't sufficient information in the Methods section for someone to repeat your analysis.
+
+Regarding the Results section:
++ Results have come out pretty much as expected - your methods seem OK.
+* The Results section has a logical flow, is well explained, with largely appropriate figures and good discussion.
+- Some issues with the figures noted: labels too small.
++ An attempt has been made to do the bonus task but this could have gone further.
+
+Regarding the Conclusion:
++ It is justifiable based on the results you obtained.
+- It is overly brief.
+
+Further comments on your response to Task 2:
+- Presentation of the results was not ideally suited to the overall aim of determining the most diagnostic sample type.
+
+TASK 3: 74%
+-----------
+
++ A well written introduction, covering key points and describing the aim.
+
+Regarding the Methods section:
+- Methods section is a little too brief, omitting useful details.
+* Clarity of the methods section is good, describing methods that are very suitable, and just about justified.
+- More details are needed regarding the source and nature of the data used.
+- Ultimately, there isn't sufficient information in the Methods section for someone to repeat your analysis.
+
+Regarding the Results section:
+* The Results section has a logical flow, is well explained, with appropriate figures but limited discussion.
+- Some issues with the figures noted: arrows missing;nice layout.
+
+Regarding the Conclusion:
+- It is more of a summary of what you did rather than a proper conclusion.
+- It is overly brief.
+
+Further comments on your response to Task 3:
+* The are some great aspects to Fig1 but connections are not easy to see and directions are missing.
+
+----------------------------
+OVERALL ASSIGNMENT MARK: 84%
+----------------------------
